@@ -31,10 +31,9 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer((serviceProvider, options) =>
+.AddJwtBearer(options =>
 {
-    // Resolve jwtSettings via DI
-    var jwtSettings = serviceProvider.GetRequiredService<IOptions<JWTSettings>>().Value;
+    var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JWTSettings>();
     var key = Encoding.UTF8.GetBytes(jwtSettings.Key);
 
     options.TokenValidationParameters = new TokenValidationParameters
@@ -48,6 +47,8 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
+
+
 
 builder.Services.AddAuthorization();
 

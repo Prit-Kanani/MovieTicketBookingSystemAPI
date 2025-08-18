@@ -56,20 +56,39 @@ namespace Movie_Management.Controllers
         #endregion
 
         [Authorize(Roles = "Admin")]
-        #region DELETE THEATRE BY ID
-        [HttpDelete("{id}")]
-        public IActionResult DeleteTheatreByID(int id)
+        #region DELETE THEATRE BY IDS
+        [HttpPost("DeleteTheatres")]
+        public IActionResult DeleteTheatres([FromBody] List<int> theatreIds)
         {
-            var theatre = _context.Theatres.Find(id);
+            if (theatreIds == null || !theatreIds.Any())
+                return BadRequest(new { message = "No IDs provided." });
 
-            if (theatre == null)
-            {
-                return NotFound();
-            }
+            var theatres = _context.Theatres.Where(t => theatreIds.Contains(t.TheatreId)).ToList();
 
-            _context.Theatres.Remove(theatre);
+            if (!theatres.Any())
+                return BadRequest(new { message = "No theatres found to delete." });
+
+            int requestedCount = theatreIds.Count;
+            int foundCount = theatres.Count;
+
+            _context.Theatres.RemoveRange(theatres);
             _context.SaveChanges();
-            return NoContent();
+
+            if (requestedCount == foundCount)
+            {
+                return Ok(new { message = "All theatres deleted successfully." });
+            }
+            else if (foundCount > 0 && foundCount < requestedCount)
+            {
+                return StatusCode(StatusCodes.Status206PartialContent, new
+                {
+                    message = "Some theatres deleted, some not found."
+                });
+            }
+            else
+            {
+                return BadRequest(new { message = "No theatres were deleted." });
+            }
         }
         #endregion
 
