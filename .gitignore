@@ -5,3 +5,4 @@ obj/
 *.suo
 *.dll
 *.pdb
+appsettings.Development.json
