@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Movie_Management_API.Models;
 
@@ -11,9 +12,11 @@ using Movie_Management_API.Models;
 namespace Movie_Management_API.Migrations
 {
     [DbContext(typeof(MovieManagementContext))]
-    partial class MovieManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20250818041026_AddIsActiveToShowTimes")]
+    partial class AddIsActiveToShowTimes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

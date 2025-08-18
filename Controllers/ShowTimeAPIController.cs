@@ -23,8 +23,11 @@ namespace Movie_Management.Controllers
         [HttpGet]
             public IActionResult GetShowTimes()
             {
-                var shows = _context.ShowTimes.ToList();
-                return Ok(shows);
+            var shows = _context.ShowTimes
+                        .Where(s => s.IsActive)
+                        .ToList();
+
+            return Ok(shows);
             }
         #endregion
 
@@ -105,9 +108,10 @@ namespace Movie_Management.Controllers
             [FromQuery] DateTime? date)
         {
             var query = _context.ShowTimes
-                .Include(s => s.Screen)
-                .ThenInclude(screen => screen.Theatre)
-                .AsQueryable();
+                    .Include(s => s.Screen)
+                        .ThenInclude(screen => screen.Theatre)
+                    .Where(s => s.IsActive)
+                    .AsQueryable();
 
             if (movieId.HasValue)
                 query = query.Where(s => s.MovieId == movieId.Value);
