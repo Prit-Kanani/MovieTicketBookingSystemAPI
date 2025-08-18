@@ -76,21 +76,19 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region INSERT THEATRE
         [HttpPost]
-            public IActionResult InsertTheatre([FromBody] Theatre theatre)
+        public IActionResult InsertTheatre([FromBody] Theatre theatre)
+        {
+            try
             {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-                try
-                {
-                    _context.Theatres.Add(theatre);
-                    _context.SaveChanges();
-                    return CreatedAtAction(nameof(GetTheatreByID), new { id = theatre.TheatreId }, theatre);
-                }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, new { message = "Error saving theatre.", error = ex.Message });
-                }
+                _context.Theatres.Add(theatre);
+                _context.SaveChanges();
+                return Ok();
             }
+            catch
+            {
+                return StatusCode(500, "Error saving theatre.");
+            }
+        }
         #endregion
 
         [Authorize(Roles = "Admin")]

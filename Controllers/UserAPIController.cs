@@ -83,13 +83,8 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region UPDATE USER
         [HttpPut("{id}")]
-        public IActionResult UpdateUser(int id, User user)
+        public IActionResult UpdateUser(int id, UserEditDTO user)
         {
-            if (id != user.UserId)
-            {
-                return BadRequest();
-            }
-
             var existingUser = _context.Users.Find(id);
             if (existingUser == null)
             {
@@ -98,7 +93,6 @@ namespace Movie_Management.Controllers
 
             existingUser.Name = user.Name;
             existingUser.Email = user.Email;
-            existingUser.Role = user.Role;
 
             if (!string.IsNullOrWhiteSpace(user.Password))
             {
