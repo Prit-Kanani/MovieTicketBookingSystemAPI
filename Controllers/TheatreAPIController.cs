@@ -123,13 +123,14 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region UPDATE THEATRE
         [HttpPut("{id}")]
-        public IActionResult UpdateTheatre(int id, Theatre theatre)
+        public IActionResult UpdateTheatre(int id, TheatreDTO theatre)
         {
             var existingTheatre= _context.Theatres.Find(id);
             if (existingTheatre == null)
             {
                 return NotFound();
             }
+
             existingTheatre.Name        = theatre.Name;
             existingTheatre.City        = theatre.City;
             existingTheatre.Address     = theatre.Address;
