@@ -1,6 +1,8 @@
 ﻿using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Movie_Management_API.DTOs;
 using Movie_Management_API.Models;
 
 namespace Movie_Management.Controllers
@@ -41,11 +43,24 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
+        [Authorize]
         #region GET SCREENS BY THEATRE ID
         [HttpGet("theatre/{theatreId}")]
         public IActionResult GetScreensByTheatre(int theatreId)
         {
-            var screens = _context.Screens.Where(s => s.TheatreId == theatreId).ToList();
+            var screens = _context.Screens
+                .Where(s => s.TheatreId == theatreId)
+                .Select(s => new ScreenDTO
+                {
+                    ScreenId = s.ScreenId,
+                    TheatreId = s.TheatreId,
+                    ScreenNo = s.ScreenNo,
+                    TotalSeats = s.TotalSeats,
+                    ShowTimes = s.ShowTimes.Count(),  // only count
+                    Theatre = s.Theatre               // optional, can be null or minimal info
+                })
+                .ToList();
+
             return Ok(screens);
         }
         #endregion
