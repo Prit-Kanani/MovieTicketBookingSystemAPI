@@ -10,50 +10,66 @@ using Movie_Management_API.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ----------------------
+// Service Registrations
+// ----------------------
+
+// Controllers
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Swagger (API docs)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Database (SQL Server + EF Core)
 builder.Services.AddDbContext<MovieManagementContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("myConnectionString")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("myConnectionString")
+    ));
 
+// FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-//jwt tocken authentication
-builder.Services.Configure<JWTSettings>(builder.Configuration.GetSection("Jwt"));
+// ----------------------
+// JWT Authentication
+// ----------------------
 
+// Load JWT settings directly from config
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JWTSettings>();
 var key = Encoding.UTF8.GetBytes(jwtSettings.Key);
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services
+    .AddAuthentication(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings.Issuer,
-        ValidAudience = jwtSettings.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(key)
-    };
-});
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(key)
+        };
+    });
+
+// Authorization
 builder.Services.AddAuthorization();
 
 
-
-
-//app build
+// ----------------------
+// App Build
+// ----------------------
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -64,11 +80,9 @@ app.UseExceptionMiddleware();
 
 app.UseHttpsRedirection();
 
-//authentication and authorization
-app.UseAuthentication();
+app.UseAuthentication();  // must come before UseAuthorization
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
-
