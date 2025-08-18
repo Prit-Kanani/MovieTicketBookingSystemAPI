@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Movie_Management_API.DTOs;
 using Movie_Management_API.Models;
 
 namespace Movie_Management.Controllers
@@ -76,11 +76,21 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region INSERT THEATRE
         [HttpPost]
-        public IActionResult InsertTheatre([FromBody] Theatre theatre)
+        public async Task<IActionResult> InsertTheatre(TheatreDTO theatre)
         {
+            var existingtheatre = await _context.Theatres.FirstOrDefaultAsync(t => t.Name == theatre.Name);
+            if (existingtheatre != null)
+                return BadRequest(new { message = "Theatre already exists." });
             try
             {
-                _context.Theatres.Add(theatre);
+                var newTheatre = new Theatre
+                {
+                    Name = theatre.Name,
+                    City = theatre.City,
+                    Address = theatre.Address,
+                    UserId = theatre.UserId
+                };
+                _context.Theatres.Add(newTheatre);
                 _context.SaveChanges();
                 return Ok();
             }
