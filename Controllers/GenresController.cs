@@ -7,6 +7,7 @@ namespace Movie_Management_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class GenresController : ControllerBase
     {
         #region CONFIGURATION
@@ -17,7 +18,7 @@ namespace Movie_Management_API.Controllers
         }
         #endregion
 
-        [Authorize]
+        
         #region GET ALL GENRES
         [HttpGet]
         public async Task<IActionResult> GetAllGenres()
@@ -27,7 +28,6 @@ namespace Movie_Management_API.Controllers
         }
         #endregion
 
-        [Authorize]
         #region GET GENRE BY ID
         [HttpGet("{id}")]
         public async Task<IActionResult> GetGenreById(int id)
@@ -96,25 +96,21 @@ namespace Movie_Management_API.Controllers
 
         [Authorize(Roles = "Admin")]
         #region DELETE GENRE
-        [HttpPost("DeleteGenres")]
-        public async Task<IActionResult> DeleteGenres([FromBody] List<int> genreIds)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteGenre(int id)
         {
-            if (genreIds == null || !genreIds.Any())
-                return BadRequest(new { message = "No IDs provided." });
+            var genre = await _context.Genres.FirstOrDefaultAsync(g => g.GenreId == id);
 
-            var genres = await _context.Genres.Where(g => genreIds.Contains(g.GenreId)).ToListAsync();
+            if (genre == null)
+                return NotFound(new { message = "Genre not found." });
 
-            if (!genres.Any())
-                return BadRequest(new { message = "No genres found to delete." });
-
-            _context.Genres.RemoveRange(genres);
+            _context.Genres.Remove(genre);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Selected genres deleted successfully." });
+            return Ok(new { message = "Genre deleted successfully." });
         }
         #endregion
 
-        [Authorize]
         #region FILTER GENRES BY NAME
         [HttpGet("filter")]
         public async Task<IActionResult> FilterGenres([FromQuery] string name)

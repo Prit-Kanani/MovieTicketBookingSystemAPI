@@ -26,6 +26,7 @@ namespace Movie_Management.Controllers
         public IActionResult GetUsers()
         {
             var users = _context.Users
+                .Where(u => u.IsActive == true)
                 .Select(u => new UserDTO
                 {
                     UserId = u.UserId,
@@ -33,7 +34,7 @@ namespace Movie_Management.Controllers
                     Email = u.Email,
                     Role = u.Role,
                     BookingCount = u.Bookings.Count()
-                }).Where(u => u.IsActive == true)
+                })
                 .ToList();
             return Ok(users);
         }
@@ -54,11 +55,11 @@ namespace Movie_Management.Controllers
         #endregion
 
         [Authorize(Roles = "Admin")]
-        #region INSERT ADMIN USER
+        #region INSERT USER BY ADMIN
         [HttpPost]
         public async Task<IActionResult> AddUser(UserAddDTO newUser)
         {
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == newUser.Email);
+            var existingUser = await _context.Users.Where(u => u.IsActive == true).FirstOrDefaultAsync(u => u.Email == newUser.Email);
             if (existingUser != null || existingUser.IsActive == false)
                 return BadRequest(new { message = "User already exists." });
             var hasher = new PasswordHasher<User>();
