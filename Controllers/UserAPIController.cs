@@ -57,29 +57,51 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region INSERT USER BY ADMIN
         [HttpPost]
-        public async Task<IActionResult> AddUser(UserAddDTO newUser)
+        public async Task<IActionResult> AddUser([FromBody] UserAddDTO newUser)
         {
-            var existingUser = await _context.Users.Where(u => u.IsActive == true).FirstOrDefaultAsync(u => u.Email == newUser.Email);
-            if (existingUser != null || existingUser.IsActive == false)
-                return BadRequest(new { message = "User already exists." });
-            var hasher = new PasswordHasher<User>();
+            // Validate model
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            // Normalize email (case-insensitive & trimmed)
+            var normalizedEmail = newUser.Email.Trim().ToLower();
+
+            var hasher = new PasswordHasher<User>();
+            var existingUser = await _context.Users
+                                             .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+
+            if (existingUser != null)
+            {
+                if (existingUser.IsActive)
+                    return BadRequest(new { message = "User already exists." });
+
+                // Reactivate instead of creating new
+                existingUser.IsActive = true;
+                existingUser.Name = newUser.Name;
+                existingUser.Role = newUser.Role;
+                existingUser.Email = normalizedEmail;
+                existingUser.Password = hasher.HashPassword(existingUser, newUser.Password);
+
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "User reactivated successfully!" });
+            }
+
+            // Create new user
             var user = new User
             {
-                Name  = newUser.Name,
-                Email = newUser.Email,
-                Role  = newUser.Role
+                Name = newUser.Name,
+                Email = normalizedEmail,
+                Role = newUser.Role,
+                Password = hasher.HashPassword(null, newUser.Password)
             };
-
-            user.Password = hasher.HashPassword(user, newUser.Password);
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "User added successfully!." });
+            return Ok(new { message = "User added successfully!" });
         }
-
         #endregion
+
 
         [Authorize(Roles = "Admin")]
         #region UPDATE USER

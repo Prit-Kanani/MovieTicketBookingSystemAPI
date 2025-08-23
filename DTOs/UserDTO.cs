@@ -9,7 +9,6 @@ namespace Movie_Management_API.DTOs
         public string Email { get; set; } = null!;
         public string Role { get; set; } = null!;
         public int BookingCount { get; set; }
-
         public Boolean IsActive { get; set; } = true;
     }
     public class UserAddDTO
@@ -21,6 +20,8 @@ namespace Movie_Management_API.DTOs
         public string Password { get; set; }
 
         public string Role { get; set; }
+
+        public Boolean IsActive { get; set; } = true;
     }
     public class UserEditDTO
     {
