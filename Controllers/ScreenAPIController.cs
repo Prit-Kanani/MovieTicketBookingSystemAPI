@@ -68,16 +68,23 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region INSERT SCREEN
         [HttpPost]
-        public IActionResult InsertScreen([FromBody] Screen screen)
+        public IActionResult InsertScreen(ScreenAddDTO screen)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            _context.Screens.Add(screen);
+            var Screen = new Screen
+            {
+                TheatreId = screen.TheatreId,
+                ScreenNo = screen.ScreenNo,
+                TotalSeats = screen.TotalSeats
+            };
+
+            _context.Screens.Add(Screen);
             _context.SaveChanges();
-            return CreatedAtAction(nameof(GetScreenByID), new { id = screen.ScreenId }, screen);
+            return Ok();
         }
         #endregion
 

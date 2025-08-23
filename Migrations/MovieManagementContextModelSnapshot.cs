@@ -32,8 +32,7 @@ namespace Movie_Management_API.Migrations
                         .HasColumnType("int")
                         .HasColumnName("GenreID");
 
-                    b.HasKey("MovieId", "GenreId")
-                        .HasName("PK__MovieGen__BBEAC46FE19AE929");
+                    b.HasKey("MovieId", "GenreId");
 
                     b.HasIndex("GenreId");
 
@@ -58,6 +57,9 @@ namespace Movie_Management_API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("(getdate())");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("PaymentStatus")
                         .IsRequired()
@@ -96,10 +98,9 @@ namespace Movie_Management_API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("GenreId")
-                        .HasName("PK__Genres__0385055E102968E8");
+                    b.HasKey("GenreId");
 
-                    b.HasIndex(new[] { "Name" }, "UQ__Genres__737584F63E632D4B")
+                    b.HasIndex("Name")
                         .IsUnique();
 
                     b.ToTable("Genres");
@@ -121,6 +122,9 @@ namespace Movie_Management_API.Migrations
                     b.Property<int>("Duration")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Language")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -136,8 +140,7 @@ namespace Movie_Management_API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.HasKey("MovieId")
-                        .HasName("PK__Movies__4BD2943AAA58B0DC");
+                    b.HasKey("MovieId");
 
                     b.ToTable("Movies");
                 });
@@ -151,6 +154,9 @@ namespace Movie_Management_API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ScreenId"));
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<int>("ScreenNo")
                         .HasColumnType("int");
 
@@ -161,8 +167,7 @@ namespace Movie_Management_API.Migrations
                     b.Property<int>("TotalSeats")
                         .HasColumnType("int");
 
-                    b.HasKey("ScreenId")
-                        .HasName("PK__Screens__0AB60F8529B3E053");
+                    b.HasKey("ScreenId");
 
                     b.HasIndex("TheatreId");
 
@@ -179,8 +184,7 @@ namespace Movie_Management_API.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.HasKey("BookingId", "SeatNo")
-                        .HasName("PK__SeatsBoo__70847579DA4E9078");
+                    b.HasKey("BookingId", "SeatNo");
 
                     b.ToTable("SeatsBooked", (string)null);
                 });
@@ -214,8 +218,7 @@ namespace Movie_Management_API.Migrations
                     b.Property<TimeOnly>("Time")
                         .HasColumnType("time");
 
-                    b.HasKey("ShowId")
-                        .HasName("PK__ShowTime__6DE3E0D235341CCC");
+                    b.HasKey("ShowId");
 
                     b.HasIndex("MovieId");
 
@@ -243,6 +246,9 @@ namespace Movie_Management_API.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -252,8 +258,7 @@ namespace Movie_Management_API.Migrations
                         .HasColumnType("int")
                         .HasColumnName("UserID");
 
-                    b.HasKey("TheatreId")
-                        .HasName("PK__Theatres__13B38381EC92FCB3");
+                    b.HasKey("TheatreId");
 
                     b.HasIndex("UserId");
 
@@ -274,6 +279,9 @@ namespace Movie_Management_API.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -289,10 +297,9 @@ namespace Movie_Management_API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("UserId")
-                        .HasName("PK__Users__1788CCACA291F9B4");
+                    b.HasKey("UserId");
 
-                    b.HasIndex(new[] { "Email" }, "UQ__Users__A9D105347246D6F6")
+                    b.HasIndex("Email")
                         .IsUnique();
 
                     b.ToTable("Users");
@@ -304,15 +311,13 @@ namespace Movie_Management_API.Migrations
                         .WithMany()
                         .HasForeignKey("GenreId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK__MovieGenr__Genre__19DFD96B");
+                        .IsRequired();
 
                     b.HasOne("Movie_Management_API.Models.Movie", null)
                         .WithMany()
                         .HasForeignKey("MovieId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK__MovieGenr__Movie__18EBB532");
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Movie_Management_API.Models.Booking", b =>
@@ -320,13 +325,13 @@ namespace Movie_Management_API.Migrations
                     b.HasOne("Movie_Management_API.Models.ShowTime", "Show")
                         .WithMany("Bookings")
                         .HasForeignKey("ShowId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK__Bookings__ShowID__5CD6CB2B");
 
                     b.HasOne("Movie_Management_API.Models.User", "User")
                         .WithMany("Bookings")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK__Bookings__UserID__5BE2A6F2");
 
@@ -351,8 +356,7 @@ namespace Movie_Management_API.Migrations
                     b.HasOne("Movie_Management_API.Models.Booking", "Booking")
                         .WithMany("SeatsBookeds")
                         .HasForeignKey("BookingId")
-                        .IsRequired()
-                        .HasConstraintName("FK__SeatsBook__Booki__5FB337D6");
+                        .IsRequired();
 
                     b.Navigation("Booking");
                 });
@@ -362,14 +366,13 @@ namespace Movie_Management_API.Migrations
                     b.HasOne("Movie_Management_API.Models.Movie", "Movie")
                         .WithMany("ShowTimes")
                         .HasForeignKey("MovieId")
-                        .IsRequired()
-                        .HasConstraintName("FK__ShowTimes__Movie__5535A963");
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Movie_Management_API.Models.Screen", "Screen")
                         .WithMany("ShowTimes")
                         .HasForeignKey("ScreenId")
-                        .IsRequired()
-                        .HasConstraintName("FK__ShowTimes__Scree__5629CD9C");
+                        .IsRequired();
 
                     b.Navigation("Movie");
 
@@ -381,8 +384,7 @@ namespace Movie_Management_API.Migrations
                     b.HasOne("Movie_Management_API.Models.User", "User")
                         .WithMany("Theatres")
                         .HasForeignKey("UserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_Theatres_Users");
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

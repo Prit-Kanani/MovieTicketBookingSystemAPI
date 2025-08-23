@@ -17,6 +17,8 @@ public partial class Movie
 
     public string Description { get; set; }
 
+    public bool IsActive { get; set; }
+
     public virtual ICollection<ShowTime> ShowTimes { get; set; } = new List<ShowTime>();
 
     public virtual ICollection<Genre> Genres { get; set; } = new List<Genre>();

@@ -19,8 +19,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<MovieManagementContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("myConnectionString")));
 
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+/*builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();*/
 
 // Register Jwt settings with DI
 builder.Services.Configure<JWTSettings>(builder.Configuration.GetSection("Jwt"));

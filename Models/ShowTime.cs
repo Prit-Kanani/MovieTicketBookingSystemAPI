@@ -1,4 +1,7 @@
-﻿namespace Movie_Management_API.Models;
+﻿using System;
+using System.Collections.Generic;
+
+namespace Movie_Management_API.Models;
 
 public partial class ShowTime
 {
@@ -14,7 +17,7 @@ public partial class ShowTime
 
     public decimal Price { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
 
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 

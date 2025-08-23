@@ -16,4 +16,11 @@ namespace Movie_Management_API.DTOs
 
         public virtual Theatre Theatre { get; set; } = null!;
     }
+    public class ScreenAddDTO
+    {
+        public int? ScreenId { get; set; }
+        public int TheatreId { get; set; }
+        public int ScreenNo { get; set; }
+        public int TotalSeats { get; set; }
+    }
 }

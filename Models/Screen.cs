@@ -13,6 +13,8 @@ public partial class Screen
 
     public int TotalSeats { get; set; }
 
+    public bool IsActive { get; set; }
+
     public virtual ICollection<ShowTime> ShowTimes { get; set; } = new List<ShowTime>();
 
     public virtual Theatre Theatre { get; set; } = null!;

@@ -11,9 +11,11 @@ public partial class Theatre
 
     public string City { get; set; } = null!;
 
-    public string Address { get; set; }
+    public string? Address { get; set; }
 
     public int UserId { get; set; }
+
+    public bool IsActive { get; set; }
 
     public virtual ICollection<Screen> Screens { get; set; } = new List<Screen>();
 
