@@ -9,6 +9,7 @@ namespace Movie_Management.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ScreenAPIController : ControllerBase
     {
         #region CONFIGURATION
@@ -19,23 +20,22 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        [Authorize]
+       
         #region GET ALL SCREENS
         [HttpGet]
         public IActionResult GetScreens()
         {
-            var screens = _context.Screens.ToList();
+            var screens = _context.Screens.Where(s => s.IsActive == true).ToList();
             return Ok(screens);
         }
         #endregion
 
-        [Authorize]
         #region GET SCREEN BY ID
         [HttpGet("{id}")]
         public IActionResult GetScreenByID(int id)
         {
             var screen = _context.Screens.Find(id);
-            if (screen == null)
+            if (screen == null || screen.IsActive == false)
             {
                 return NotFound();
             }
@@ -43,21 +43,20 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        [Authorize]
         #region GET SCREENS BY THEATRE ID
         [HttpGet("theatre/{theatreId}")]
         public IActionResult GetScreensByTheatre(int theatreId)
         {
             var screens = _context.Screens
-                .Where(s => s.TheatreId == theatreId)
+                .Where(s => s.TheatreId == theatreId && s.IsActive == true)
                 .Select(s => new ScreenDTO
                 {
                     ScreenId = s.ScreenId,
                     TheatreId = s.TheatreId,
                     ScreenNo = s.ScreenNo,
                     TotalSeats = s.TotalSeats,
-                    ShowTimes = s.ShowTimes.Count(),  // only count
-                    Theatre = s.Theatre               // optional, can be null or minimal info
+                    ShowTimes = s.ShowTimes.Count(),  
+                    Theatre = s.Theatre               
                 })
                 .ToList();
 
@@ -91,15 +90,12 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region UPDATE SCREEN
         [HttpPut("{id}")]
-        public IActionResult UpdateScreen(int id, [FromBody] Screen screen)
+        public IActionResult UpdateScreen([FromBody] Screen screen)
         {
-            if (id != screen.ScreenId)
-            {
-                return BadRequest("Screen ID mismatch.");
-            }
 
-            var existingScreen = _context.Screens.Find(id);
-            if (existingScreen == null)
+            var existingScreen = _context.Screens.Find(screen.ScreenId);
+
+            if (existingScreen == null || existingScreen.IsActive == false)
             {
                 return NotFound();
             }
@@ -119,12 +115,11 @@ namespace Movie_Management.Controllers
         public IActionResult DeleteScreen(int id)
         {
             var screen = _context.Screens.Find(id);
-            if (screen == null)
+            if (screen == null || screen.IsActive == false)
             {
                 return NotFound();
             }
-
-            _context.Screens.Remove(screen);
+            screen.IsActive = false;
             _context.SaveChanges();
             return NoContent();
         }

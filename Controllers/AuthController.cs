@@ -30,8 +30,9 @@ namespace Movie_Management_API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO login)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email);
-            if (user == null)
+            var user = await _context.Users.Where(u => u.IsActive == true).FirstOrDefaultAsync(u => u.Email == login.Email);
+
+            if (user == null || user.IsActive == false)
                 return Unauthorized("Invalid credentials");
 
             var hasher = new PasswordHasher<User>();
@@ -60,8 +61,9 @@ namespace Movie_Management_API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Check if user already exists
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == register.Email);
+            // Check if Active user already exists
+            var existingUser = await _context.Users.Where(u => u.IsActive == true).FirstOrDefaultAsync(u => u.Email == register.Email);
+
             if (existingUser != null)
                 return Conflict("User with this email already exists");
 

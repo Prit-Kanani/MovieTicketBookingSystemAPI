@@ -8,6 +8,7 @@ namespace Movie_Management.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class BookingAPIController : ControllerBase
     {
         #region CONFIGURATION
@@ -29,6 +30,7 @@ namespace Movie_Management.Controllers
                 .Include(b => b.Show)
                     .ThenInclude(s => s.Movie)
                 .Include(b => b.User)
+                .Where(b => b.IsActive == true)
                 .Select(b => new BookingResponseDTO
                 {
                     BookingId = b.BookingId,
@@ -46,7 +48,6 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        [Authorize]
         #region GET BOOKING BY ID
         [HttpGet("{id}")]
         public IActionResult GetBookingById(int id)
@@ -56,6 +57,7 @@ namespace Movie_Management.Controllers
                 .Include(b => b.Show)
                     .ThenInclude(s => s.Movie)
                 .Include(b => b.User)
+                .Where(b => b.IsActive == true)
                 .Select(b => new BookingResponseDTO
                 {
                     BookingId = b.BookingId,
@@ -75,13 +77,12 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        [Authorize]
         #region GET BOOKED SEATS FOR A SHOW
         [HttpGet("show/{showId}/seats")]
         public IActionResult GetBookedSeats(int showId)
         {
             var seats = _context.SeatsBookeds
-                .Where(s => s.Booking.ShowId == showId)
+                .Where(s => s.Booking.ShowId == showId && s.Booking.IsActive == true)
                 .Select(s => s.SeatNo)
                 .ToList();
 
@@ -89,7 +90,6 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        [Authorize]
         #region CREATE BOOKING
         [HttpPost]
         public IActionResult CreateBooking([FromBody] BookingDTO dto)
@@ -141,24 +141,32 @@ namespace Movie_Management.Controllers
             }
         }
         #endregion
-        [Authorize]
-        #region DELETE BOOKING
+
+        #region CANCEL BOOKING (Soft Delete)
         [HttpDelete("{id}")]
         public IActionResult CancelBooking(int id)
         {
             var booking = _context.Bookings
                 .Include(b => b.SeatsBookeds)
-                .FirstOrDefault(b => b.BookingId == id);
+                .FirstOrDefault(b => b.BookingId == id && b.IsActive);
 
             if (booking == null)
-                return NotFound();
+                return NotFound(new { message = "Booking not found or already cancelled." });
 
-            _context.SeatsBookeds.RemoveRange(booking.SeatsBookeds);
-            _context.Bookings.Remove(booking);
-            _context.SaveChanges();
+            booking.IsActive = false;
 
-            return NoContent();
+            try
+            {
+                _context.SaveChanges();
+                return Ok(new { message = "Booking cancelled successfully." });
+            }
+            catch (Exception ex)
+            {
+                var inner = ex.InnerException?.Message ?? ex.Message;
+                return StatusCode(500, new { error = inner });
+            }
         }
         #endregion
+
     }
 }

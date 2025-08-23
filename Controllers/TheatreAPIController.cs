@@ -8,6 +8,7 @@ namespace Movie_Management.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TheatreAPIController : ControllerBase
     {
         #region CONFIGURATION
@@ -18,13 +19,13 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        [Authorize]
         #region GET ALL THEATRES
         [HttpGet]
         public IActionResult GetTheaters()
         {
             var theatres = _context.Theatres
                 .Include(t => t.Screens)
+                .Where(t => t.IsActive == true)
                 .Select(t => new
                 {
                     t.TheatreId,
@@ -41,13 +42,12 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        [Authorize]
         #region GET THEATRE BY ID
         [HttpGet("{id}")]
         public IActionResult GetTheatreByID(int id)
         {
             var theatre = _context.Theatres.Find(id);
-            if (theatre == null)
+            if (theatre == null || theatre.IsActive == false)
             {
                 return NotFound();
             }
@@ -56,14 +56,16 @@ namespace Movie_Management.Controllers
         #endregion
 
         [Authorize(Roles = "Admin")]
-        #region DELETE THEATRE BY IDS
+        #region DELETE THEATRE BY IDS (Soft Delete)
         [HttpPost("DeleteTheatres")]
         public IActionResult DeleteTheatres([FromBody] List<int> theatreIds)
         {
             if (theatreIds == null || !theatreIds.Any())
                 return BadRequest(new { message = "No IDs provided." });
 
-            var theatres = _context.Theatres.Where(t => theatreIds.Contains(t.TheatreId)).ToList();
+            var theatres = _context.Theatres
+                .Where(t => theatreIds.Contains(t.TheatreId) && t.IsActive == true)
+                .ToList();
 
             if (!theatres.Any())
                 return BadRequest(new { message = "No theatres found to delete." });
@@ -71,23 +73,28 @@ namespace Movie_Management.Controllers
             int requestedCount = theatreIds.Count;
             int foundCount = theatres.Count;
 
-            _context.Theatres.RemoveRange(theatres);
+            // 🔥 Soft delete instead of RemoveRange
+            foreach (var theatre in theatres)
+            {
+                theatre.IsActive = false;
+            }
+
             _context.SaveChanges();
 
             if (requestedCount == foundCount)
             {
-                return Ok(new { message = "All theatres deleted successfully." });
+                return Ok(new { message = "All theatres deactivated successfully." });
             }
             else if (foundCount > 0 && foundCount < requestedCount)
             {
                 return StatusCode(StatusCodes.Status206PartialContent, new
                 {
-                    message = "Some theatres deleted, some not found."
+                    message = "Some theatres deactivated, some not found."
                 });
             }
             else
             {
-                return BadRequest(new { message = "No theatres were deleted." });
+                return BadRequest(new { message = "No theatres were deactivated." });
             }
         }
         #endregion
@@ -97,7 +104,7 @@ namespace Movie_Management.Controllers
         [HttpPost]
         public async Task<IActionResult> InsertTheatre(TheatreDTO theatre)
         {
-            var existingtheatre = await _context.Theatres.FirstOrDefaultAsync(t => t.Name == theatre.Name);
+            var existingtheatre = await _context.Theatres.Where(t => t.IsActive == true).FirstOrDefaultAsync(t => t.Name == theatre.Name);
             if (existingtheatre != null)
                 return BadRequest(new { message = "Theatre already exists." });
             try
@@ -147,7 +154,7 @@ namespace Movie_Management.Controllers
         public IActionResult FilterTheatres([FromQuery] string city)
         {
             var theatres = _context.Theatres
-                .Where(t => string.IsNullOrEmpty(city) || t.City.ToLower().Contains(city.ToLower()))
+                .Where(t => (string.IsNullOrEmpty(city) || t.City.ToLower().Contains(city.ToLower())) && t.IsActive == true)
                 .ToList();
 
             return Ok(theatres);
@@ -159,7 +166,7 @@ namespace Movie_Management.Controllers
         [HttpGet("user/{userId}")]
         public IActionResult GetTheatresManagedByUser(int userId)
         {
-            var theatres = _context.Theatres.Where(t => t.UserId == userId).ToList();
+            var theatres = _context.Theatres.Where(t => t.UserId == userId && t.IsActive == true).ToList();
             return Ok(theatres);
         }
         #endregion

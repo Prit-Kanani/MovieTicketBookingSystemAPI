@@ -33,7 +33,7 @@ namespace Movie_Management.Controllers
                     Email = u.Email,
                     Role = u.Role,
                     BookingCount = u.Bookings.Count()
-                })
+                }).Where(u => u.IsActive == true)
                 .ToList();
             return Ok(users);
         }
@@ -45,7 +45,7 @@ namespace Movie_Management.Controllers
         public IActionResult GetUserByID(int id)
         {
             var user = _context.Users.Find(id);
-            if (user == null)
+            if (user == null || user.IsActive == false)
             {
                 return NotFound();
             }
@@ -59,7 +59,7 @@ namespace Movie_Management.Controllers
         public async Task<IActionResult> AddUser(UserAddDTO newUser)
         {
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == newUser.Email);
-            if (existingUser != null)
+            if (existingUser != null || existingUser.IsActive == false)
                 return BadRequest(new { message = "User already exists." });
             var hasher = new PasswordHasher<User>();
 
@@ -86,7 +86,7 @@ namespace Movie_Management.Controllers
         public IActionResult UpdateUser(int id, UserEditDTO user)
         {
             var existingUser = _context.Users.Find(id);
-            if (existingUser == null)
+            if (existingUser == null || existingUser.IsActive == false)
             {
                 return NotFound();
             }
@@ -113,23 +113,20 @@ namespace Movie_Management.Controllers
         {
             var user = _context.Users.Find(id);
 
-            if (user == null)
+            if (user == null || user.IsActive == false)
             {
                 return NotFound();
             }
 
-            // Prevent deleting Admin accounts
             if (user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
             {
                 return BadRequest("Cannot delete an Admin account.");
             }
-
-            _context.Users.Remove(user);
+            user.IsActive = false;
             _context.SaveChanges();
             return NoContent();
         }
         #endregion
-
 
     }
 }

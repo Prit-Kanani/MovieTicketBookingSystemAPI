@@ -15,6 +15,8 @@ public partial class User
 
     public string Role { get; set; } = null!;
 
+    public bool IsActive { get; set; }
+
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public virtual ICollection<Theatre> Theatres { get; set; } = new List<Theatre>();

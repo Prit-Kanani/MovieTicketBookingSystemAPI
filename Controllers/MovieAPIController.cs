@@ -8,6 +8,7 @@ namespace Movie_Management.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class MovieAPIController : ControllerBase
     {
         #region CONFIGURATION
@@ -20,12 +21,12 @@ namespace Movie_Management.Controllers
         #endregion
 
         #region GET ALL MOVIES (With Genres)
-        [Authorize]
         [HttpGet]
         public IActionResult GetMovies()
         {
             var movies = _context.Movies
                 .Include(m => m.Genres)
+                .Where(m => m.IsActive == true)
                 .Select(m => new MovieDTO
                 {
                     MovieId = m.MovieId,
@@ -43,13 +44,12 @@ namespace Movie_Management.Controllers
         #endregion
 
         #region GET MOVIE BY ID (With Genres)
-        [Authorize]
         [HttpGet("{id}")]
         public IActionResult GetMovieByID(int id)
         {
             var movie = _context.Movies
                 .Include(m => m.Genres)
-                .Where(m => m.MovieId == id)
+                .Where(m => m.MovieId == id && m.IsActive == true)
                 .Select(m => new AddMovieDTO
                 {
                     MovieId = m.MovieId,
@@ -69,20 +69,22 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        #region DELETE MOVIE BY ID
-        /*[Authorize(Roles = "Admin")]*/
+        #region DELETE MOVIE BY ID (Soft Delete)
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public IActionResult DeleteMovieByID(int id)
         {
+            var movie = _context.Movies.FirstOrDefault(m => m.MovieId == id && m.IsActive);
+
+            if (movie == null)
+                return NotFound(new { message = "Movie not found or already inactive." });
+
+            movie.IsActive = false;
+
             try
             {
-                var movie = _context.Movies.Find(id);
-                if (movie == null)
-                    return NotFound();
-
-                _context.Movies.Remove(movie);
                 _context.SaveChanges();
-                return NoContent();
+                return Ok(new { message = "Movie deactivated successfully." });
             }
             catch (Exception ex)
             {
@@ -146,6 +148,7 @@ namespace Movie_Management.Controllers
                 return BadRequest();
 
             var existingMovie = _context.Movies
+                .Where(m => m.IsActive == true)
                 .Include(m => m.Genres)
                 .FirstOrDefault(m => m.MovieId == id);
 
