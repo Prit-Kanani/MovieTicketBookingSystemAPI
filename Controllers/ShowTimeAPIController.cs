@@ -46,7 +46,6 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-
         #region GET SHOWTIME BY SCREEN ID
         [HttpGet("{id}")]
         public IActionResult GetShowTimesByScreenID(int id)
@@ -137,16 +136,34 @@ namespace Movie_Management.Controllers
         #endregion
 
         [Authorize(Roles = "Admin")]
-        #region DELETE SHOWTIME
-        [HttpDelete("{id}")]
-        public IActionResult DeleteShowTime(int id)
+        #region SOFT DELETE MULTIPLE SHOWTIMES
+        [HttpPost("DeleteShowTimes")]
+        public IActionResult DeleteShowTimes([FromBody] List<int> ids)
         {
-            var show = _context.ShowTimes.Find(id);
-            if (show == null || show.IsActive == false)
-                return NotFound();
-            show.IsActive = false;
+            if (ids == null || !ids.Any())
+                return BadRequest("No showtime IDs provided.");
+
+            var showtimes = _context.ShowTimes
+                .Where(s => ids.Contains(s.ShowId) && s.IsActive == true)
+                .ToList();
+
+            if (!showtimes.Any())
+                return NotFound("No active showtimes found for given IDs.");
+
+            foreach (var show in showtimes)
+            {
+                show.IsActive = false;
+            }
+
             _context.SaveChanges();
-            return NoContent();
+
+            // If all deleted
+            if (showtimes.Count == ids.Count)
+                return Ok("All selected showtimes marked as inactive.");
+
+            // Some found, some missing
+            return StatusCode(StatusCodes.Status206PartialContent,
+                $"{showtimes.Count} showtimes marked as inactive, some IDs not found.");
         }
         #endregion
 
@@ -247,7 +264,6 @@ namespace Movie_Management.Controllers
             return Ok(new { message = "Showtime added successfully!" });
         }
         #endregion
-
 
     }
 }
