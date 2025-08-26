@@ -78,7 +78,7 @@ namespace Movie_Management.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Check if screen with same number already exists in the same theatre
+            // Check if a screen with same ScreenNo exists in this theatre
             var existingScreen = await _context.Screens
                 .FirstOrDefaultAsync(s => s.TheatreId == screen.TheatreId
                                        && s.ScreenNo == screen.ScreenNo);
@@ -86,15 +86,22 @@ namespace Movie_Management.Controllers
             if (existingScreen != null)
             {
                 if (existingScreen.IsActive)
+                {
                     return BadRequest(new { message = "Screen already exists in this theatre." });
+                }
 
-                // Reactivate instead of creating duplicate
+                // Reactivate and update fields
                 existingScreen.IsActive = true;
                 existingScreen.TotalSeats = screen.TotalSeats;
+
+                // if later you add more props like ProjectionType, SoundSystem etc.
+                // update them here as well.
+
                 await _context.SaveChangesAsync();
-                return Ok(new { message = "Screen reactivated successfully!" });
+                return Ok(new { message = "Screen reactivated and updated successfully!" });
             }
 
+            // If no existing screen, create new
             var newScreen = new Screen
             {
                 TheatreId = screen.TheatreId,
@@ -120,7 +127,7 @@ namespace Movie_Management.Controllers
 
             var existingScreen = await _context.Screens.FindAsync(screen.ScreenId);
 
-            if (existingScreen == null || !existingScreen.IsActive)
+            if (existingScreen == null)
                 return NotFound(new { message = "Screen not found." });
 
             // Check duplicate ScreenNo in the same Theatre
