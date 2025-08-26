@@ -19,7 +19,6 @@ namespace Movie_Management.Controllers
             _context = context;
         }
         #endregion
-
        
         #region GET ALL SCREENS
         [HttpGet]
@@ -47,6 +46,9 @@ namespace Movie_Management.Controllers
         [HttpGet("theatre/{theatreId}")]
         public IActionResult GetScreensByTheatre(int theatreId)
         {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+
             var screens = _context.Screens
                 .Where(s => s.TheatreId == theatreId && s.IsActive == true)
                 .Select(s => new ScreenDTO
@@ -55,8 +57,12 @@ namespace Movie_Management.Controllers
                     TheatreId = s.TheatreId,
                     ScreenNo = s.ScreenNo,
                     TotalSeats = s.TotalSeats,
-                    ShowTimes = s.ShowTimes.Count(),  
-                    Theatre = s.Theatre               
+                    ShowTimes = s.ShowTimes
+                        .Where(st => st.IsActive == true
+                                     && (st.Date > today
+                                         || (st.Date == today && st.Time > currentTime))) // ✅ only future shows
+                        .Count(),
+                    Theatre = s.Theatre
                 })
                 .ToList();
 
@@ -67,63 +73,106 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region INSERT SCREEN
         [HttpPost]
-        public IActionResult InsertScreen(ScreenAddDTO screen)
+        public async Task<IActionResult> InsertScreen([FromBody] ScreenAddDTO screen)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
+
+            // Check if screen with same number already exists in the same theatre
+            var existingScreen = await _context.Screens
+                .FirstOrDefaultAsync(s => s.TheatreId == screen.TheatreId
+                                       && s.ScreenNo == screen.ScreenNo);
+
+            if (existingScreen != null)
+            {
+                if (existingScreen.IsActive)
+                    return BadRequest(new { message = "Screen already exists in this theatre." });
+
+                // Reactivate instead of creating duplicate
+                existingScreen.IsActive = true;
+                existingScreen.TotalSeats = screen.TotalSeats;
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Screen reactivated successfully!" });
             }
 
-            var Screen = new Screen
+            var newScreen = new Screen
             {
                 TheatreId = screen.TheatreId,
                 ScreenNo = screen.ScreenNo,
-                TotalSeats = screen.TotalSeats
+                TotalSeats = screen.TotalSeats,
+                IsActive = true
             };
 
-            _context.Screens.Add(Screen);
-            _context.SaveChanges();
-            return Ok();
+            await _context.Screens.AddAsync(newScreen);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Screen added successfully!" });
         }
         #endregion
 
         [Authorize(Roles = "Admin")]
         #region UPDATE SCREEN
-        [HttpPut("{id}")]
-        public IActionResult UpdateScreen([FromBody] Screen screen)
+        [HttpPut]
+        public async Task<IActionResult> UpdateScreen(ScreenAddDTO screen)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var existingScreen = _context.Screens.Find(screen.ScreenId);
+            var existingScreen = await _context.Screens.FindAsync(screen.ScreenId);
 
-            if (existingScreen == null || existingScreen.IsActive == false)
-            {
-                return NotFound();
-            }
+            if (existingScreen == null || !existingScreen.IsActive)
+                return NotFound(new { message = "Screen not found." });
+
+            // Check duplicate ScreenNo in the same Theatre
+            var duplicate = await _context.Screens
+                .FirstOrDefaultAsync(s => s.TheatreId == screen.TheatreId
+                                       && s.ScreenNo == screen.ScreenNo
+                                       && s.ScreenId != screen.ScreenId);
+
+            if (duplicate != null)
+                return BadRequest(new { message = "A screen with this number already exists in this theatre." });
 
             existingScreen.ScreenNo = screen.ScreenNo;
             existingScreen.TotalSeats = screen.TotalSeats;
             existingScreen.TheatreId = screen.TheatreId;
 
-            _context.SaveChanges();
-            return NoContent();
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Screen updated successfully!" });
         }
         #endregion
 
         [Authorize(Roles = "Admin")]
-        #region DELETE SCREEN
-        [HttpDelete("{id}")]
-        public IActionResult DeleteScreen(int id)
+        #region SOFT DELETE MULTIPLE SCREENS
+        [HttpPost("DeleteScreens")]
+        public IActionResult DeleteScreens([FromBody] List<int> ids)
         {
-            var screen = _context.Screens.Find(id);
-            if (screen == null || screen.IsActive == false)
+            if (ids == null || !ids.Any())
+                return BadRequest("No screen IDs provided.");
+
+            var screens = _context.Screens
+                .Where(s => ids.Contains(s.ScreenId) && s.IsActive == true)
+                .ToList();
+
+            if (!screens.Any())
+                return NotFound("No active screens found for given IDs.");
+
+            foreach (var screen in screens)
             {
-                return NotFound();
+                screen.IsActive = false;
             }
-            screen.IsActive = false;
+
             _context.SaveChanges();
-            return NoContent();
+
+            // If all deleted
+            if (screens.Count == ids.Count)
+                return Ok("All selected screens marked as inactive.");
+
+            // Some found, some missing
+            return StatusCode(StatusCodes.Status206PartialContent,
+                $"{screens.Count} screens marked as inactive, some IDs not found.");
         }
         #endregion
+
 
 
     }

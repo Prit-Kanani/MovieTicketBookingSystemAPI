@@ -11,8 +11,6 @@ public partial class Booking
 
     public int ShowId { get; set; }
 
-    public string BookingType { get; set; } = null!;
-
     public DateTime? DateTime { get; set; }
 
     public string PaymentStatus { get; set; } = null!;

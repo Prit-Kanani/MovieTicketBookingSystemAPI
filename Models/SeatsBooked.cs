@@ -7,7 +7,7 @@ public partial class SeatsBooked
 {
     public int BookingId { get; set; }
 
-    public string SeatNo { get; set; } = null!;
+    public int SeatNo { get; set; }
 
     public virtual Booking Booking { get; set; } = null!;
 }

@@ -32,7 +32,7 @@ namespace Movie_Management.Controllers
                     t.Name,
                     t.City,
                     t.Address,
-                    Screens = t.Screens.Select(s => new
+                    Screens = t.Screens.Where(s => s.IsActive == true).Select(s => new
                     {
                         s.ScreenNo
                     }).ToList()
@@ -102,27 +102,41 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region INSERT THEATRE
         [HttpPost]
-        public async Task<IActionResult> InsertTheatre(TheatreDTO theatre)
+        public async Task<IActionResult> InsertTheatre([FromBody] TheatreDTO theatre)
         {
-            var existingtheatre = await _context.Theatres.Where(t => t.IsActive == true).FirstOrDefaultAsync(t => t.Name == theatre.Name);
-            if (existingtheatre != null)
+            // Validate model
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Normalize name to avoid case-sensitive duplicates
+            var normalizedName = theatre.Name.Trim().ToLower();
+
+            // Check if an active theatre with the same name already exists
+            var existingTheatre = await _context.Theatres
+                .FirstOrDefaultAsync(t => t.IsActive == true && t.Name.ToLower() == normalizedName);
+
+            if (existingTheatre != null)
                 return BadRequest(new { message = "Theatre already exists." });
+
             try
             {
                 var newTheatre = new Theatre
                 {
-                    Name = theatre.Name,
-                    City = theatre.City,
-                    Address = theatre.Address,
-                    UserId = theatre.UserId
+                    Name = theatre.Name.Trim(),
+                    City = theatre.City.Trim(),
+                    Address = theatre.Address.Trim(),
+                    UserId = theatre.UserId,
+                    IsActive = true
                 };
-                _context.Theatres.Add(newTheatre);
-                _context.SaveChanges();
-                return Ok();
+
+                await _context.Theatres.AddAsync(newTheatre);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Theatre added successfully!" });
             }
-            catch
+            catch (Exception ex)
             {
-                return StatusCode(500, "Error saving theatre.");
+                return StatusCode(500, new { message = "Error saving theatre.", error = ex.Message });
             }
         }
         #endregion

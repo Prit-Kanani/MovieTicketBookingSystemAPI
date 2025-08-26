@@ -42,7 +42,6 @@ public partial class MovieManagementContext : DbContext
             entity.HasKey(e => e.BookingId).HasName("PK__Bookings__73951ACD2D60E46C");
 
             entity.Property(e => e.BookingId).HasColumnName("BookingID");
-            entity.Property(e => e.BookingType).HasMaxLength(10);
             entity.Property(e => e.DateTime)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -115,12 +114,11 @@ public partial class MovieManagementContext : DbContext
 
         modelBuilder.Entity<SeatsBooked>(entity =>
         {
-            entity.HasKey(e => new { e.BookingId, e.SeatNo }).HasName("PK__SeatsBoo__70847579DA4E9078");
+            entity.HasKey(e => new { e.BookingId, e.SeatNo });
 
             entity.ToTable("SeatsBooked");
 
             entity.Property(e => e.BookingId).HasColumnName("BookingID");
-            entity.Property(e => e.SeatNo).HasMaxLength(10);
 
             entity.HasOne(d => d.Booking).WithMany(p => p.SeatsBookeds)
                 .HasForeignKey(d => d.BookingId)

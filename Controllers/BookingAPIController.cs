@@ -34,7 +34,6 @@ namespace Movie_Management.Controllers
                 .Select(b => new BookingResponseDTO
                 {
                     BookingId = b.BookingId,
-                    BookingType = b.BookingType,
                     PaymentStatus = b.PaymentStatus,
                     DateTime = (DateTime)b.DateTime,
                     SeatNos = b.SeatsBookeds.Select(s => s.SeatNo).ToList(),
@@ -61,7 +60,6 @@ namespace Movie_Management.Controllers
                 .Select(b => new BookingResponseDTO
                 {
                     BookingId = b.BookingId,
-                    BookingType = b.BookingType,
                     PaymentStatus = b.PaymentStatus,
                     DateTime = (DateTime)b.DateTime,
                     SeatNos = b.SeatsBookeds.Select(s => s.SeatNo).ToList(),
@@ -102,7 +100,7 @@ namespace Movie_Management.Controllers
                     .Select(s => s.SeatNo)
                     .ToList();
 
-                var duplicateSeats = dto.SeatNos.Intersect(alreadyBooked).ToList();
+                var duplicateSeats = dto.SeatNos;
                 if (duplicateSeats.Any())
                 {
                     return Conflict(new
@@ -117,13 +115,8 @@ namespace Movie_Management.Controllers
                 {
                     UserId = dto.UserId,
                     ShowId = dto.ShowId,
-                    BookingType = dto.BookingType,
                     PaymentStatus = dto.PaymentStatus,
-                    DateTime = DateTime.Now,
-                    SeatsBookeds = dto.SeatNos.Select(seat => new SeatsBooked
-                    {
-                        SeatNo = seat
-                    }).ToList()
+                    DateTime = DateTime.Now
                 };
 
                 _context.Bookings.Add(booking);
