@@ -49,7 +49,8 @@ namespace Movie_Management_API.Controllers
                 Role = user.Role,
                 Email = user.Email,
                 Message = "Login successful",
-                UserId = user.UserId
+                UserId = user.UserId,
+                Name = user.Name
             });
         }
         #endregion

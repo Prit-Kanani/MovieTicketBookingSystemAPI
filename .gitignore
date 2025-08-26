@@ -1,8 +1,28 @@
+# Build results
 bin/
 obj/
+Debug/
+Release/
+
+# Visual Studio files
 .vs/
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# NuGet packages
+*.nupkg
+packages/
+*.snupkg
+
+# Others
 *.dll
+*.exe
+*.cache
 *.pdb
+*.db
 appsettings.Development.json
