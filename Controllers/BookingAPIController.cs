@@ -88,53 +88,6 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        #region CREATE BOOKING
-        [HttpPost]
-        public IActionResult CreateBooking([FromBody] BookingDTO dto)
-        {
-            try
-            {
-                // Check for seat conflicts
-                var alreadyBooked = _context.SeatsBookeds
-                    .Where(s => s.Booking.ShowId == dto.ShowId)
-                    .Select(s => s.SeatNo)
-                    .ToList();
-
-                var duplicateSeats = dto.SeatNos;
-                if (duplicateSeats.Any())
-                {
-                    return Conflict(new
-                    {
-                        message = "Some seats are already booked.",
-                        seats = duplicateSeats
-                    });
-                }
-
-                // Create booking
-                var booking = new Booking
-                {
-                    UserId = dto.UserId,
-                    ShowId = dto.ShowId,
-                    PaymentStatus = dto.PaymentStatus,
-                    DateTime = DateTime.Now
-                };
-
-                _context.Bookings.Add(booking);
-                _context.SaveChanges();
-
-                return CreatedAtAction(nameof(GetBookingById), new { id = booking.BookingId }, booking);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    message = "Booking failed.",
-                    error = ex.Message
-                });
-            }
-        }
-        #endregion
-
         #region CANCEL BOOKING (Soft Delete)
         [HttpDelete("{id}")]
         public IActionResult CancelBooking(int id)
@@ -161,5 +114,103 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
+        #region GET BOOKINGS BY USER
+        [HttpPost("booking")]
+        public async Task<ActionResult<BookingResultDTO>> CreateBooking([FromBody] CreateBookingDTO dto) // <-- add [FromBody]
+        {
+            try
+            {
+                if (dto.SeatNos == null || dto.SeatNos.Count == 0)
+                    return BadRequest(new BookingResultDTO { Message = "No seats selected." });
+
+                var show = await _context.ShowTimes
+                    .Include(s => s.Screen)
+                    .FirstOrDefaultAsync(s => s.ShowId == dto.ShowId && s.IsActive);
+
+                if (show == null)
+                    return NotFound(new BookingResultDTO { Message = "Show not found or inactive." });
+
+                if (dto.SeatNos.Any(n => n < 1 || n > show.Screen.TotalSeats))
+                    return BadRequest(new BookingResultDTO { Message = "One or more seat numbers are invalid." });
+
+                using var tx = await _context.Database.BeginTransactionAsync();
+
+                var alreadyBooked = await _context.Bookings
+                    .Where(b => b.ShowId == dto.ShowId && b.IsActive)
+                    .SelectMany(b => b.SeatsBookeds.Select(sb => sb.SeatNo))
+                    .ToListAsync();
+
+                var conflicts = dto.SeatNos.Intersect(alreadyBooked).Distinct().ToList();
+                if (conflicts.Any())
+                {
+                    await tx.RollbackAsync();
+                    return Conflict(new BookingResultDTO
+                    {
+                        Message = "Some seats have just been booked by others.",
+                        Conflicts = conflicts
+                    });
+                }
+
+                var booking = new Booking
+                {
+                    UserId = dto.UserId,
+                    ShowId = dto.ShowId,
+                    DateTime = DateTime.UtcNow,
+                    PaymentStatus = dto.PaymentStatus,
+                    IsActive = true,
+                    SeatsBookeds = dto.SeatNos.Distinct().Select(seat => new SeatsBooked
+                    {
+                        SeatNo = seat
+                    }).ToList()
+                };
+
+                _context.Bookings.Add(booking);
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                return Ok(new BookingResultDTO
+                {
+                    BookingId = booking.BookingId,
+                    ConfirmedSeats = dto.SeatNos.Distinct().ToList(),
+                    Message = "Booking confirmed."
+                });
+            }
+            catch (Exception ex)
+            {
+                // log it (or return details in dev mode)
+                return StatusCode(500, new BookingResultDTO { Message = $"Internal error: {ex.Message}" });
+            }
+        }
+
+
+        #endregion
+
+        #region GET BOOKING BY ID FOR TICKET PDF
+        [HttpGet("{id}/Pdf")]
+        public IActionResult GetBookingByIdPdf(int id)
+        {
+            var booking = _context.Bookings
+                .Include(b => b.SeatsBookeds)
+                .Include(b => b.Show)
+                    .ThenInclude(s => s.Movie)
+                .Include(b => b.User)
+                .Where(b => b.IsActive == true)
+                .Select(b => new BookingResponseDTO
+                {
+                    BookingId = b.BookingId,
+                    PaymentStatus = b.PaymentStatus,
+                    DateTime = (DateTime)b.DateTime,
+                    SeatNos = b.SeatsBookeds.Select(s => s.SeatNo).ToList(),
+                    MovieName = b.Show.Movie.Name,
+                    UserName = b.User.Name
+                })
+                .FirstOrDefault(b => b.BookingId == id);
+
+            if (booking == null)
+                return NotFound();
+
+            return Ok(booking);
+        }
+        #endregion
     }
 }

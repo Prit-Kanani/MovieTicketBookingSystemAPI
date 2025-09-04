@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Movie_Management_API.DTOs;
 using Movie_Management_API.Models;
 
 namespace Movie_Management_API.Controllers

@@ -24,10 +24,10 @@ namespace Movie_Management.Controllers
         [HttpGet("Show/{id}")]
         public IActionResult GetShowTimesByShowID(int id)
         {
-            var today = DateOnly.FromDateTime(DateTime.Now);
+            DeactivatePastShows();
 
             var show = _context.ShowTimes
-                .Where(s => s.ShowId == id && s.IsActive && s.Date >= today)
+                .Where(s => s.ShowId == id && s.IsActive)
                 .Select(s => new ShowtimeAddDTO
                 {
                     ShowId = s.ShowId,
@@ -67,7 +67,7 @@ namespace Movie_Management.Controllers
                     Price = s.Price,
                     IsActive = s.IsActive,
                     MovieName = s.Movie.Name,
-                    BookingsCount = s.Bookings.Count(),
+                    BookingsCount = s.Bookings.Count(b => b.IsActive),
                 })
                 .ToList();
 
@@ -85,7 +85,6 @@ namespace Movie_Management.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
             // Validate date & time
             if (dto.Date < DateOnly.FromDateTime(DateTime.Today) ||
                 (dto.Date == DateOnly.FromDateTime(DateTime.Today) && dto.Time <= TimeOnly.FromDateTime(DateTime.Now)))
@@ -167,37 +166,6 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-        [AllowAnonymous]
-        #region FILTER SHOWTIMES
-        [HttpGet("filter")]
-        public IActionResult FilterShowTimes(
-            [FromQuery] int? movieId,
-            [FromQuery] int? theatreId,
-            [FromQuery] DateTime? date)
-        {
-            var query = _context.ShowTimes
-                    .Include(s => s.Screen)
-                        .ThenInclude(screen => screen.Theatre)
-                    .Where(s => s.IsActive == true)
-                    .AsQueryable();
-
-            if (movieId.HasValue)
-                query = query.Where(s => s.MovieId == movieId.Value);
-
-            if (theatreId.HasValue)
-                query = query.Where(s => s.Screen.TheatreId == theatreId.Value);
-
-            if (date.HasValue)
-            {
-                var dateOnly = DateOnly.FromDateTime(date.Value);
-                query = query.Where(s => s.Date == dateOnly);
-            }
-
-            var results = query.ToList();
-            return Ok(results);
-        }
-        #endregion
-
         [Authorize(Roles = "Admin")]
         #region INSERT SHOWTIME
         [HttpPost]
@@ -265,5 +233,77 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
+        #region GET BOOKINGS WITH ID OF FROM SHOW ID
+        [HttpGet("{showId}/seatmap")]
+        public async Task<ActionResult<ShowSeatMapDTO>> GetSeatMap(int showId, [FromQuery] int userId)
+        {
+            DeactivatePastShows();
+            var show = await _context.ShowTimes
+                .Where(s => s.ShowId == showId && s.IsActive == true)
+                .Select(s => new
+                {
+                    s.ShowId,
+                    s.Date,
+                    s.Time,
+                    s.Price,
+                    ScreenNo = s.Screen.ScreenNo,
+                    TotalSeats = s.Screen.TotalSeats,
+                    Theatre = s.Screen.Theatre.Name
+                })
+                .FirstOrDefaultAsync();
+
+            if (show == null) return NotFound();
+
+            // All active bookings for this show
+            var booked = await _context.Bookings
+                .Where(b => b.ShowId == showId && b.IsActive == true)
+                .Select(b => new
+                {
+                    b.BookingId,
+                    b.UserId,
+                    Seats = b.SeatsBookeds.Select(sb => sb.SeatNo).ToList()
+                })
+                .ToListAsync();
+
+            var mySeats = booked.Where(b => b.UserId == userId).SelectMany(b => b.Seats).Distinct().ToList();
+            var othersSeats = booked.Where(b => b.UserId != userId).SelectMany(b => b.Seats).Distinct().ToList();
+
+            var dto = new ShowSeatMapDTO
+            {
+                ShowId = show.ShowId,
+                Date = show.Date,
+                Time = show.Time,
+                Price = show.Price,
+                ScreenNo = show.ScreenNo,
+                Theatre = show.Theatre,
+                TotalSeats = show.TotalSeats,
+                MyBookedSeats = mySeats,
+                OthersBookedSeats = othersSeats
+            };
+
+            return Ok(dto);
+        }
+        #endregion
+
+        #region DELETE PAST SHOWTIMES (Soft Delete)
+        private void DeactivatePastShows()
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+
+            var pastShows = _context.ShowTimes
+                .Where(s => s.Date < today && s.IsActive) // only active but expired
+                .ToList();
+
+            if (pastShows.Any())
+            {
+                foreach (var show in pastShows)
+                {
+                    show.IsActive = false;
+                }
+
+                _context.SaveChanges();
+            }
+        }
+        #endregion
     }
 }

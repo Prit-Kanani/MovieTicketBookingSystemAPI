@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -23,10 +24,10 @@ namespace Movie_Management.Controllers
         [Authorize(Roles = "Admin")]
         #region GET ALL USERS
         [HttpGet]
-        public IActionResult GetUsers()
+        public ActionResult<List<UserDTO>> GetUsers()
         {
             var users = _context.Users
-                .Where(u => u.IsActive == true)
+                .Where(u => u.IsActive)
                 .Select(u => new UserDTO
                 {
                     UserId = u.UserId,
@@ -36,6 +37,7 @@ namespace Movie_Management.Controllers
                     BookingCount = u.Bookings.Count()
                 })
                 .ToList();
+
             return Ok(users);
         }
         #endregion
@@ -102,8 +104,7 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
-
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         #region UPDATE USER
         [HttpPut("{id}")]
         public IActionResult UpdateUser(int id, UserEditDTO user)
@@ -147,6 +148,31 @@ namespace Movie_Management.Controllers
             }
             user.IsActive = false;
             _context.SaveChanges();
+            return NoContent();
+        }
+        #endregion
+
+        #region PATCH USER STATUS
+        [HttpPatch]
+        public async Task<IActionResult> PatchUser([FromBody] UserEditDTO dto)
+        {
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+                user.Email = dto.Email;
+
+            if (!string.IsNullOrWhiteSpace(dto.Name))
+                user.Name = dto.Name;
+
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+            {
+                var hasher = new PasswordHasher<User>();
+                user.Password = hasher.HashPassword(user, dto.Password);
+            }
+
+            await _context.SaveChangesAsync();
+
             return NoContent();
         }
         #endregion

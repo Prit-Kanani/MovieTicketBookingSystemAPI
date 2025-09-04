@@ -1,10 +1,7 @@
 using System.Text;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Options;
 using Movie_Management.Middleware;
 using Movie_Management_API.DTOs;
 using Movie_Management_API.Models;

@@ -177,5 +177,82 @@ namespace Movie_Management.Controllers
 
         #endregion
 
+        #region GET MOVIE FULL DETAILS (with Genres, Theatres, Screens, ShowTimes)
+        [HttpGet("{id}/fulldetails")]
+        public IActionResult GetMovieFullDetails(int id)
+        {
+            DeactivatePastShows(); // Soft delete past shows
+
+            var movie = _context.Movies
+                .Include(m => m.Genres)
+                .Include(m => m.ShowTimes)
+                    .ThenInclude(st => st.Screen)   
+                        .ThenInclude(s => s.Theatre)
+                .Where(m => m.MovieId == id && m.IsActive == true)
+                .Select(m => new MovieDetailsResponseDTO
+                {
+                    MovieId = m.MovieId,
+                    Name = m.Name,
+                    Language = m.Language,
+                    Duration = m.Duration,
+                    Poster = m.Poster,
+                    Description = m.Description,
+                    Genres = m.Genres.Select(g => g.Name).ToList(),
+
+                    Theatres = m.ShowTimes
+                        .Where(st => st.IsActive == true && st.Screen.IsActive == true && st.Screen.Theatre.IsActive == true)
+                        .GroupBy(st => st.Screen.Theatre)
+                        .Select(g => new MovieTheatreResponseDTO
+                        {
+                            TheatreId = g.Key.TheatreId,
+                            TheatreName = g.Key.Name,
+                            City = g.Key.City,
+                            Address = g.Key.Address,
+                            Screens = g.GroupBy(st => st.Screen)
+                                .Select(sg => new MovieScreenResponseDTO
+                                {
+                                    ScreenId = sg.Key.ScreenId,
+                                    ScreenNo = sg.Key.ScreenNo,
+                                    TotalSeats = sg.Key.TotalSeats,
+                                    ShowTimes = sg.Select(st => new MovieShowTimeResponseDTO
+                                    {
+                                        ShowId = st.ShowId,
+                                        Date = st.Date,
+                                        Time = st.Time,
+                                        Price = st.Price
+                                    }).ToList()
+                                }).ToList()
+                        }).ToList()
+                })
+                .FirstOrDefault();
+
+            if (movie == null)
+                return NotFound(new { message = "Movie not found or inactive." });
+
+            return Ok(movie);
+        }
+        #endregion
+
+        #region DELETE PAST SHOWTIMES (Soft Delete)
+        private void DeactivatePastShows()
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+
+            var pastShows = _context.ShowTimes
+                .Where(s => s.Date < today && s.IsActive) // only active but expired
+                .ToList();
+
+            if (pastShows.Any())
+            {
+                foreach (var show in pastShows)
+                {
+                    show.IsActive = false;
+                }
+
+                _context.SaveChanges();
+            }
+        }
+        #endregion
+
     }
 }
