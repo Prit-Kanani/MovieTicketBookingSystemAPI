@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Movie_Management_API.DTOs
 {
@@ -9,7 +10,8 @@ namespace Movie_Management_API.DTOs
         public string Email { get; set; } = null!;
         public string Role { get; set; } = null!;
         public int BookingCount { get; set; }
-        public Boolean IsActive { get; set; } = true;
+        [Column("IsActive")]
+        public bool IsActive { get; set; } = true;
     }
     public class UserAddDTO
     {
@@ -21,7 +23,7 @@ namespace Movie_Management_API.DTOs
 
         public string Role { get; set; }
 
-        public Boolean IsActive { get; set; } = true;
+        public bool IsActive { get; set; }
     }
     public class UserEditDTO
     {

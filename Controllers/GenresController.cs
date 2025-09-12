@@ -123,5 +123,28 @@ namespace Movie_Management_API.Controllers
             return Ok(genres);
         }
         #endregion
+
+        #region PAGINATION OF GENRES
+        [HttpGet("paginate")]
+        public async Task<IActionResult> PaginateGenres([FromQuery] int pageNumber = 1)
+        {
+            int pageSize = 10;
+            var totalGenres = await _context.Genres.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalGenres / (double)pageSize);
+
+            var genres = await _context.Genres
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                Data = genres,
+                CurrentPage = pageNumber,
+                TotalPages = totalPages
+            });
+        }
+        #endregion
+
     }
 }

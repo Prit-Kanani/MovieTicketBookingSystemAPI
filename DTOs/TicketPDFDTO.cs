@@ -1,4 +1,4 @@
-﻿namespace Movie_management_system.DTOs
+﻿namespace Movie_Management_API.DTOs
 {
     public class TicketPDFDTO
     {

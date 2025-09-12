@@ -254,5 +254,49 @@ namespace Movie_Management.Controllers
         }
         #endregion
 
+        [AllowAnonymous]
+        #region GET FILTERED MOVIES
+        [HttpGet("filter")]
+        public IActionResult GetFilteredMovies([FromQuery] string? name, [FromQuery] string? language, [FromQuery] string? sortBy)
+        {
+            var query = _context.Movies
+                .Include(m => m.Genres)
+                .Where(m => m.IsActive);
+
+            if (!string.IsNullOrEmpty(name))
+                query = query.Where(m => m.Name.ToLower().Contains(name.ToLower()));
+
+            if (!string.IsNullOrEmpty(language))
+                query = query.Where(m => m.Language.ToLower().Contains(language.ToLower()));
+
+            if (!string.IsNullOrEmpty(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "name":
+                        query = query.OrderBy(m => m.Name);
+                        break;
+                    case "duration":
+                        query = query.OrderBy(m => m.Duration);
+                        break;
+                }
+            }
+
+            var movies = query.Select(m => new MovieDTO
+            {
+                MovieId = m.MovieId,
+                Name = m.Name,
+                Language = m.Language,
+                Duration = m.Duration,
+                Poster = m.Poster,
+                Description = m.Description,
+                Genres = m.Genres.Select(g => g.Name).ToList()
+            }).ToList();
+
+            return Ok(movies);
+        }
+
+        #endregion
+
     }
 }

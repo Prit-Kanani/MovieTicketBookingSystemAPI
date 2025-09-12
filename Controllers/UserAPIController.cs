@@ -27,12 +27,12 @@ namespace Movie_Management.Controllers
         public ActionResult<List<UserDTO>> GetUsers()
         {
             var users = _context.Users
-                .Where(u => u.IsActive)
                 .Select(u => new UserDTO
                 {
                     UserId = u.UserId,
                     Name = u.Name,
                     Email = u.Email,
+                    IsActive = u.IsActive,
                     Role = u.Role,
                     BookingCount = u.Bookings.Count()
                 })

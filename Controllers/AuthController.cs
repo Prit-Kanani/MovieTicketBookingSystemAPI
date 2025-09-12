@@ -61,20 +61,32 @@ namespace Movie_Management_API.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
+            var hasher = new PasswordHasher<User>();
             // Check if Active user already exists
-            var existingUser = await _context.Users.Where(u => u.IsActive == true).FirstOrDefaultAsync(u => u.Email == register.Email);
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == register.Email);
 
-            if (existingUser != null)
+            if (existingUser != null && existingUser.IsActive == true)
                 return Conflict("User with this email already exists");
 
-            // Hash the password
-            var hasher = new PasswordHasher<User>();
+            else if(existingUser != null && existingUser.IsActive == false)
+            {
+                existingUser.IsActive = true;
+                existingUser.Name = register.Name;
+                existingUser.Role = register.Role;
+                existingUser.Password = hasher.HashPassword(existingUser, register.Password);
+                await _context.SaveChangesAsync();
+                return Ok(new
+                {
+                    Message = "Registration successful"
+                });
+            }
+
             var user = new User
             {
                 Name = register.Name,
                 Email = register.Email,
-                Role = register.Role
+                Role = register.Role,
+                IsActive = true
             };
             user.Password = hasher.HashPassword(user, register.Password);
 
